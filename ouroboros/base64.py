@@ -5,11 +5,13 @@
 # Modified 04-Oct-1995 by Jack Jansen to use binascii module
 # Modified 30-Dec-2003 by Barry Warsaw to add full RFC 3548 support
 # Modified 22-May-2007 by Guido van Rossum to use bytes everywhere
-
+import sys
+print(sys.path)
 import re
 import struct
-import binascii
+from . import binascii
 
+print(re, struct, binascii)
 
 __all__ = [
     # Legacy interface exports traditional RFC 1521 Base64 encodings

@@ -1,9 +1,13 @@
 """Test the binascii C module."""
 
 from test import support
+
 import unittest
-import binascii
-import array
+from ouroboros import binascii
+
+# TODO readd array tests when array py implementation exists
+# from ouroboros import array
+
 
 # Note: "*_hex" functions are aliases for "(un)hexlify"
 b2a_functions = ['b2a_base64', 'b2a_hex', 'b2a_hqx', 'b2a_qp', 'b2a_uu',
@@ -247,9 +251,9 @@ class BinASCIITest(unittest.TestCase):
             self.assertRaises(ValueError, a2b, "\x80")
 
 
-class ArrayBinASCIITest(BinASCIITest):
-    def type2test(self, s):
-        return array.array('B', list(s))
+# class ArrayBinASCIITest(BinASCIITest):
+#     def type2test(self, s):
+#         return array.array('B', list(s))
 
 
 class BytearrayBinASCIITest(BinASCIITest):
@@ -262,7 +266,7 @@ class MemoryviewBinASCIITest(BinASCIITest):
 
 def test_main():
     support.run_unittest(BinASCIITest,
-                         ArrayBinASCIITest,
+                         # ArrayBinASCIITest,
                          BytearrayBinASCIITest,
                          MemoryviewBinASCIITest)
 

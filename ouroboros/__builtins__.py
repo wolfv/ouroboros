@@ -253,3 +253,248 @@ in length to the length of the shortest argument sequence."""
             except StopIteration:
                 return result
             result.append(tuple(items))
+
+
+def enumerate(iterable):
+    idx = 0
+    for item in iterable:
+        yield((idx, item))
+        idx += 1
+
+
+def abs(number):
+    if hasattr(number, '__abs__'):
+        return number.__abs__()
+
+    if number < 0:
+        return number * -1
+    else:
+        return number
+
+
+class range:
+    def __init__(self, start, stop, step=1):
+        if not stop:
+            stop = start
+            start = 0
+
+        if stop < start and step > 0 or \
+           stop > start and step < 0:
+            raise IndexError
+
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+        self.iterstop = abs((stop - start) / step)
+        self.cvalue = self.start
+        self.current = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.current < self.iterstop:
+            self.cvalue += self.step
+            self.current += 1
+            return self.cvalue - self.step
+        else:
+            raise StopIteration
+
+xrange = range
+
+def _minmax(cmpfct, iterable, *args, key=None, default=None):
+    if len(args) > 0:
+        iterable = [iterable] + [i for i in args]
+    curr_max = None
+    if len(iterable) == 0:
+        if default:
+            return default
+        else:
+            raise ValueError('minmax() arg is an empty sequence')
+    for item in iterable:
+        if key:
+            cmp_item = item[key]
+        else:
+            cmp_item = item
+        if curr_max and cmpfct(curr_max, cmp_item):
+            curr_max = cmp_item
+        if not curr_max:
+            curr_max = cmp_item
+    return curr_max
+
+def max(iterable, *args, key=None, default=None):
+    return _minmax(lambda x, y: x < y, iterable, *args, key=key, default=default)
+
+def min(iterable, *args, key=None, default=None):
+    return _minmax(lambda x, y: x > y, iterable, *args, key=key, default=default)
+
+
+# Missing functions
+# chr, ord --> ?
+
+def divmod(x, y):
+    # TODO implement for float values!
+    return (x // y, x % y)
+
+def bool(x):
+    # adapted from brython JS
+    if not x:
+        return False
+    if isinstance(x, bool):
+        return x
+    elif isinstance(x, int) or isinstance(x, float) or isinstance(x, basestring):
+        if x:
+            return True
+        else:
+            return False
+    else:
+        try:
+            return getattr(x, '__bool__')()
+        except:
+            try:
+                return getattr(x, '__len__')() > 0
+            except:
+                return True
+
+
+def _ntostring(number, base, prefix):
+    if not isinstance(number, int):
+        try:
+            number = number.__index__()
+        except:
+            raise TypeError('%s object cannot be interpreted as integer' % (number.__class__.__name__))
+
+    if number < 0:
+        prefix = '-' + prefix
+    number = abs(number)
+    x = 0
+    while base ** x < number:
+        x += 1
+    x = x - 1 if x > 0 else 0
+    res = ''
+    intmapping = '0123456789abcdefghijklmnopqrstuvwxyz'
+    while x >= 0:
+        t, rest = divmod(number, (base ** (x)))
+        res += intmapping[t]
+        number = rest
+        x -= 1
+        # print(t, number, rest)
+
+    return prefix + res
+
+def hex(number):
+    return _ntostring(number, base=16, prefix='0x')
+
+def bin(number):
+    return _ntostring(number, base=2, prefix='0b')
+
+def oct(number):
+    return _ntostring(number, base=8, prefix='0o')
+
+class memoryview:
+    def __init__(self, obj):
+        # TODO check that value supports BufferInterface
+        self.obj = [i for i in obj]
+        self.readonly = False
+
+    def __getitem__(self, index):
+        return self.obj[index]
+
+    def __setitem__(self, rng, value):
+        # TODO check that value supports BufferInterface
+        olen = len(self.obj)
+        slice_sizes = rng.indices(olen)
+        change_len = (slice_sizes[1] - slice_sizes[0]) / slice_sizes[2]
+        if change_len < len(value):
+            raise IndexError
+        self.obj[rng] = value
+
+    def tobytes(self):
+        return bytes(self.obj)
+
+    def tolist(self):
+        return self.obj
+
+    def release(self):
+        self.obj = None
+
+
+class complex:
+    def __init__(self, real, imag=None):
+        if isinstance(real, str):
+            self._parse(real)
+        else:
+            self.real = real
+            self.imag = imag
+
+    def __add__(self, other):
+        if isinstance(other, complex):
+            nr = self.real + other.real
+            ni = self.imag + other.imag
+            return complex(nr, ni)
+
+    def __repr__(self):
+        return "(%r+%rj)" % (self.real, self.imag)
+
+def repr(object):
+    return object.__repr__()
+
+def test():
+    l = ['a', 'b', 'c']
+    for i in enumerate(l):
+        print(i)
+
+    a = memoryview(b'123')
+    a2 = __builtins__.memoryview(bytearray(b'123'))
+    print(a[1:3])
+    a[1:3] = b'12'
+    a2[1:3] = b'12'
+    print(a[:])
+
+    print(a)
+
+    for i in range(0, 5):
+        print(i)
+    for i in range(0, 5, 10):
+        print(i)
+
+    for i in range(-1, -5, -1):
+        print(i)
+    for i in xrange(0, -5, -1):
+        print(i)
+
+    print(42, bin(42), __builtins__.bin(42))
+    print(42, hex(42), __builtins__.hex(42))
+    print(21341, hex(21341), __builtins__.hex(21341))
+    print(-21341, hex(-21341), __builtins__.hex(-21341))
+    print(-21341, oct(-21341), __builtins__.oct(-21341))
+    print(-0, oct(-0), __builtins__.oct(-0))
+    print(-0, bin(-0), __builtins__.bin(-0))
+    try:
+        print(-0.2, bin(-0.2), __builtins__.bin(-0.2))
+    except:
+        pass
+    # print(-1042, bin(-1042))
+
+    print(max([1,2,3,4,-1,-2312, 10023021]))
+    print(min([1,2,3,4,-1,-2312, 10023021]))
+    print(min([], default=-1000))
+    try:
+        print(min([]))
+    except ValueError as e:
+        print("correct value error", e)
+
+    print(a.tobytes())
+    print(a2.tobytes())
+    print(a.tolist())
+    print(a2.tolist())
+
+    c = complex(3.2, 5)
+    c2 = complex(4, 6)
+    print(c + c2)
+    print(__builtins__.complex(3.2,5) + __builtins__.complex(4,6))
+
+
+if __name__ == '__main__':
+    test()
